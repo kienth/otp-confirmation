@@ -1,11 +1,13 @@
 import "./globals.css";
 import { Inter } from "next/font/google";
+import { Providers } from "@/components/Providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "OTP Verification",
-  description: "Email OTP verification system",
+  title: "OTP Verification & Newsletter System",
+  description:
+    "Email OTP verification and newsletter system with Google authentication",
 };
 
 export default function RootLayout({
@@ -15,7 +17,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }
