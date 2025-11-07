@@ -18,6 +18,14 @@ import { TableHeader } from "@tiptap/extension-table-header";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface TiptapEditorProps {
   content?: string;
@@ -31,60 +39,65 @@ export function TiptapEditor({
   placeholder = "Start writing your newsletter...",
 }: TiptapEditorProps) {
   const [isClient, setIsClient] = useState(false);
+  const [htmlCode, setHtmlCode] = useState("");
+  const [isCodeDialogOpen, setIsCodeDialogOpen] = useState(false);
 
   // Ensure we're on the client side before rendering the editor
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const editor = useEditor({
-    immediatelyRender: false, // Fix SSR hydration issues
-    extensions: [
-      StarterKit.configure({
-        heading: false, // Disable the default heading extension
-      }),
-      Heading.configure({
-        levels: [1, 2, 3, 4, 5, 6],
-        HTMLAttributes: {
-          class: 'heading',
+  const editor = useEditor(
+    {
+      immediatelyRender: false, // Fix SSR hydration issues
+      extensions: [
+        StarterKit.configure({
+          heading: false, // Disable the default heading extension
+        }),
+        Heading.configure({
+          levels: [1, 2, 3, 4, 5, 6],
+          HTMLAttributes: {
+            class: "heading",
+          },
+        }),
+        TextStyle,
+        Color,
+        TextAlign.configure({
+          types: ["heading", "paragraph"],
+        }),
+        FontFamily,
+        Underline,
+        Image.configure({
+          inline: true,
+          allowBase64: true,
+        }),
+        Link.configure({
+          openOnClick: false,
+          HTMLAttributes: {
+            class: "text-blue-600 underline",
+          },
+        }),
+        Table.configure({
+          resizable: true,
+        }),
+        TableRow,
+        TableHeader,
+        TableCell,
+      ],
+      content,
+      onUpdate: ({ editor }) => {
+        const html = editor.getHTML();
+        onChange?.(html);
+      },
+      editorProps: {
+        attributes: {
+          class:
+            "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[300px] p-4 border rounded-md",
         },
-      }),
-      TextStyle,
-      Color,
-      TextAlign.configure({
-        types: ["heading", "paragraph"],
-      }),
-      FontFamily,
-      Underline,
-      Image.configure({
-        inline: true,
-        allowBase64: true,
-      }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: "text-blue-600 underline",
-        },
-      }),
-      Table.configure({
-        resizable: true,
-      }),
-      TableRow,
-      TableHeader,
-      TableCell,
-    ],
-    content,
-    onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
-      onChange?.(html);
-    },
-    editorProps: {
-      attributes: {
-        class:
-          "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[300px] p-4 border rounded-md",
       },
     },
-  }, [isClient]); // Only create editor when client-side
+    [isClient]
+  ); // Only create editor when client-side
 
   const addImage = () => {
     const url = window.prompt("Enter image URL:");
@@ -107,6 +120,15 @@ export function TiptapEditor({
         .focus()
         .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
         .run();
+    }
+  };
+
+  const insertHtmlCode = () => {
+    if (htmlCode.trim() && editor) {
+      // Insert HTML content at current cursor position
+      editor.chain().focus().insertContent(htmlCode).run();
+      setHtmlCode("");
+      setIsCodeDialogOpen(false);
     }
   };
 
@@ -271,6 +293,49 @@ export function TiptapEditor({
           <Button variant="outline" size="sm" onClick={insertTable}>
             📊 Table
           </Button>
+
+          {/* HTML Code Dialog */}
+          <Dialog open={isCodeDialogOpen} onOpenChange={setIsCodeDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                💻 HTML Code
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Insert HTML Code</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Paste your HTML code below:
+                  </label>
+                  <Textarea
+                    value={htmlCode}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                      setHtmlCode(e.target.value)
+                    }
+                    placeholder="<div><h1>Your HTML content here...</h1><p>This will be inserted into the editor.</p></div>"
+                    className="min-h-[200px] font-mono text-sm"
+                  />
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setHtmlCode("");
+                      setIsCodeDialogOpen(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={insertHtmlCode} disabled={!htmlCode.trim()}>
+                    Insert HTML
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
